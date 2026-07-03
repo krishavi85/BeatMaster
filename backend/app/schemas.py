@@ -123,6 +123,15 @@ class MidiRequest(BaseModel):
     tempo_bpm: float | None = Field(None, ge=30.0, le=300.0)
 
 
+class SingingRequest(BaseModel):
+    lyrics_file_id: str
+    midi_file_id: str | None = None
+    name: str = Field("Lead Vocals", min_length=1, max_length=200)
+    title: str = Field("BeatMaster Song", min_length=1, max_length=200)
+    language: str = Field("English", min_length=1, max_length=100)
+    voice_id: str | None = Field(None, max_length=200)
+
+
 class DawExportRequest(BaseModel):
     file_ids: list[str] | None = None
     name: str = Field("DAW Package", min_length=1, max_length=200)
@@ -139,6 +148,9 @@ class CompleteSongRequest(CultureAwareRequest):
     seed: int | None = None
     guidance_scale: float = Field(3.0, ge=1.0, le=10.0)
     include_lyrics: bool = True
+    render_vocals: bool = False
+    voice_id: str | None = Field(None, max_length=200)
+    vocal_gain_db: float = Field(-3.0, ge=-24.0, le=12.0)
     separate_stems: bool = True
     extract_chords: bool = True
     extract_midi: bool = True
@@ -157,6 +169,8 @@ class CapabilityOut(BaseModel):
     daw_export: bool
     lyrics_provider_configured: bool
     lyrics_provider: str | None
+    singing_provider_configured: bool
+    singing_provider: str | None
     musicgen_enabled: bool
     musicgen_runtime: bool
     complete_song_pipeline: bool
