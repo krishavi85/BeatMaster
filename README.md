@@ -1,41 +1,45 @@
 # BeatMaster
 
-BeatMaster is a self-hosted audio-production workstation with real file processing.
+BeatMaster is a self-hosted audio-production workstation. It stores and processes real audio files and never substitutes missing engines with sample values or placeholder output.
 
-## Working processors
+## Implemented
 
-- Audio upload and FFprobe metadata
-- Demucs v4 source separation
-- FFmpeg multitrack mixing
+- FFprobe metadata and FFmpeg/librosa audio analysis
+- Demucs v4 stem separation
+- Real multitrack mixing with gain, pan and limiting
 - Two-pass EBU R128 mastering
-- Loudness, tempo, key, waveform and technical analysis
-- Optional local MusicGen generation on a configured AI worker
-- Persistent processing jobs, real progress, audio preview and downloads
+- Optional local MusicGen-compatible generation
+- Persistent projects, jobs, progress, errors, previews and downloads
+- Runtime capability detection and a responsive dark-purple workspace
 
-## Start
+## Run
 
 ```bash
-cp .env.example .env
 docker compose up --build
 ```
 
-Open the web application at `http://localhost:8080` and API documentation at `http://localhost:8000/docs`.
+Open BeatMaster at `http://localhost:8080` and the API at `http://localhost:8000/docs`.
 
-For a CUDA worker and local MusicGen:
+For GPU processing and local generation:
 
 ```bash
+cp config.example.env .env
+# Set MUSICGEN_MODEL to a compatible model whose license permits your use.
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
 ```
 
-The application never substitutes missing processors with sample values or placeholder audio. When a runtime is unavailable, the capability screen reports it and the related action remains disabled.
+Generation stays disabled unless a model is configured and the AI worker starts. The first Demucs job downloads its selected model weights into the persistent cache.
 
-## Development
+## Develop
 
 ```bash
-cd web && npm install && npm run dev
-cd backend && pip install -r requirements-worker.txt
-uvicorn app.main:app --reload
-python -m app.worker
+cd backend
+python -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.server:application --reload
 ```
 
-MusicGen model licensing must be reviewed before commercial deployment. Production hosting also needs authentication, TLS, quotas, backups, monitoring and sufficient CPU/GPU capacity.
+Run the worker in another terminal with `python -m app.worker`.
+
+Production operation still requires compute, disk, backups, HTTPS, authentication, quotas, monitoring, malware scanning and appropriate model/content licenses.
