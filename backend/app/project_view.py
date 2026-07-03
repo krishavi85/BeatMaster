@@ -8,6 +8,7 @@ from .runtime_capabilities import inspect_capabilities
 from .storage import absolute_from_relative
 
 AUDIO_KINDS = {"source", "stem", "mix", "master", "generated", "vocal"}
+EDITABLE_KINDS = {"lyrics", "chord_sheet", "chord_timeline", "notes"}
 
 
 def option_files(project: Project, kinds: set[str] | None = None) -> str:
@@ -21,7 +22,7 @@ def metric(label: str, value, suffix: str = "") -> str:
 
 
 def _text_preview(item: AudioFile) -> str:
-    if not (item.mime_type or "").startswith("text/") and item.kind not in {"lyrics", "chord_sheet", "chord_timeline"}:
+    if not (item.mime_type or "").startswith("text/") and item.kind not in EDITABLE_KINDS:
         return ""
     try:
         text = absolute_from_relative(item.relative_path).read_text(encoding="utf-8")[:2500]
@@ -34,12 +35,12 @@ def _file_card(item: AudioFile) -> str:
     details = f'{escape(item.codec or "file")} · {item.size_bytes / 1024 / 1024:.2f} MB'
     if item.duration_seconds is not None:
         details += f' · {item.sample_rate or 0} Hz · {item.channels or 0} ch · {round(item.duration_seconds, 2)} s'
-    preview = ""
     if item.kind in AUDIO_KINDS or (item.mime_type or "").startswith("audio/"):
         preview = f'<audio controls preload="metadata" src="/api/files/{item.id}/stream"></audio>'
     else:
         preview = _text_preview(item)
-    return f'''<div class="card"><span class="pill">{escape(item.kind.upper())}</span><h3>{escape(item.label)}</h3><p class="muted">{details}</p>{preview}<div class="actions"><a class="button secondary" href="/api/files/{item.id}/download">Download</a></div></div>'''
+    edit_button = f'<a class="button" href="/ui/projects/{item.project_id}/document-editor?file_id={item.id}">Edit</a>' if item.kind in EDITABLE_KINDS else ""
+    return f'''<div class="card"><span class="pill">{escape(item.kind.upper())}</span><h3>{escape(item.label)}</h3><p class="muted">{details}</p>{preview}<div class="actions"><a class="button secondary" href="/api/files/{item.id}/download">Download</a>{edit_button}</div></div>'''
 
 
 def _language_options() -> str:
@@ -88,7 +89,7 @@ def render_project(project: Project) -> tuple[str, bool]:
     if not capabilities["singing_provider_configured"]:
         singing_notice = '<div class="notice">Connect a compatible singing synthesis REST provider to render vocals.</div>'
     elif not lyrics_options:
-        singing_notice = '<div class="notice">Generate or upload a lyrics asset before rendering vocals.</div>'
+        singing_notice = '<div class="notice">Generate or write a lyrics asset before rendering vocals.</div>'
     else:
         singing_notice = ""
     forms = f'''
@@ -97,7 +98,7 @@ def render_project(project: Project) -> tuple[str, bool]:
 <section class="card"><h2>Editable stem mixer</h2><form action="/ui/projects/{project.id}/mix" method="post" onsubmit="return collectMixer(this)"><input type="hidden" name="tracks_json" value=""><table><tr><th>Track</th><th>Gain dB</th><th>Pan</th><th>Mute</th></tr>{mixer_rows}</table><label>Mix name</label><input name="name" value="BeatMaster Mix"><label>Format</label><select name="output_format"><option>wav</option><option>flac</option><option>mp3</option></select><button type="submit">Render real mix</button></form></section>
 <section class="card"><h2>Master audio</h2><form action="/ui/projects/{project.id}/master" method="post"><label>Source</label><select name="source_file_id" required>{sources}</select><label>Name</label><input name="name" value="BeatMaster Master"><label>Target LUFS</label><input name="target_lufs" type="number" value="-14" min="-24" max="-5" step="0.1"><label>True peak ceiling</label><input name="true_peak_db" type="number" value="-1" min="-3" max="-0.1" step="0.1"><label>Loudness range</label><input name="loudness_range" type="number" value="11" min="1" max="20" step="0.1"><label>Style</label><select name="style"><option>transparent</option><option>warm</option><option>bright</option><option>punchy</option><option>wide</option></select><label>Format</label><select name="output_format"><option>wav</option><option>flac</option><option>mp3</option></select><button type="submit">Run two-pass master</button></form></section>
 <section class="card"><h2>Chords and MIDI</h2><form action="/ui/projects/{project.id}/chords" method="post"><label>Audio source</label><select name="source_file_id" required>{sources}</select><label>Chord-map name</label><input name="name" value="Chord Map"><button type="submit">Extract chord timeline</button></form><hr style="border-color:#29243d"><form action="/ui/projects/{project.id}/midi" method="post"><label>Audio source</label><select name="source_file_id" required>{sources}</select><label>MIDI name</label><input name="name" value="MIDI Transcription"><label>Tempo override</label><input name="tempo_bpm" type="number" min="30" max="300" step="0.1" placeholder="Use detected tempo"><button type="submit">Transcribe MIDI</button></form></section>
-<section class="card"><h2>Multilingual songwriting</h2><form action="/ui/projects/{project.id}/lyrics" method="post"><label>Title</label><input name="title" value="{escape(project.name)}" required><label>Theme and story</label><textarea name="prompt" minlength="8" maxlength="3000" required placeholder="Describe the story, message and emotional progression"></textarea><label>Language</label><select name="language">{_language_options()}</select><label>Culture profile</label><select name="culture_profile_id">{_culture_options(culture_selected)}</select><label>Mood</label><input name="mood" placeholder="Hopeful, intimate, celebratory..."><label>Structure</label><input name="structure" placeholder="Verse, Pre-Chorus, Chorus, Verse, Bridge, Final Chorus"><button type="submit" {lyrics_disabled}>Generate editable lyrics</button></form>{lyrics_notice}</section>
+<section class="card"><h2>Multilingual songwriting</h2><div class="actions"><a class="button secondary" href="/ui/projects/{project.id}/document-editor?kind=lyrics&label={escape(project.name)}%20Lyrics">Write lyrics manually</a></div><br><form action="/ui/projects/{project.id}/lyrics" method="post"><label>Title</label><input name="title" value="{escape(project.name)}" required><label>Theme and story</label><textarea name="prompt" minlength="8" maxlength="3000" required placeholder="Describe the story, message and emotional progression"></textarea><label>Language</label><select name="language">{_language_options()}</select><label>Culture profile</label><select name="culture_profile_id">{_culture_options(culture_selected)}</select><label>Mood</label><input name="mood" placeholder="Hopeful, intimate, celebratory..."><label>Structure</label><input name="structure" placeholder="Verse, Pre-Chorus, Chorus, Verse, Bridge, Final Chorus"><button type="submit" {lyrics_disabled}>Generate editable lyrics</button></form>{lyrics_notice}</section>
 <section class="card"><h2>Singing vocals</h2><p class="muted">Sends your lyrics and optional melody MIDI to the configured synthesis provider and stores the returned vocal track.</p><form action="/ui/projects/{project.id}/singing" method="post"><label>Lyrics</label><select name="lyrics_file_id" required>{lyrics_options}</select><label>Melody MIDI</label><select name="midi_file_id">{midi_options}</select><label>Track name</label><input name="name" value="Lead Vocals"><label>Song title</label><input name="title" value="{escape(project.name)}"><label>Language</label><select name="language">{_language_options()}</select><label>Voice ID</label><input name="voice_id" placeholder="Provider voice or singer model ID"><button type="submit" {singing_disabled}>Render singing track</button></form>{singing_notice}</section>
 <section class="card"><h2>DAW integration</h2><p class="muted">Exports aligned audio, MIDI, chords and lyrics with a REAPER project and a generic interchange manifest.</p><form action="/ui/projects/{project.id}/daw-export" method="post"><label>Package name</label><input name="name" value="{escape(project.name)} DAW Package"><label>Tempo</label><input name="tempo_bpm" type="number" min="30" max="300" step="0.1" value="{escape(str(analysis.get('tempo_bpm') or ''))}" placeholder="120"><label>Time signature</label><input name="time_signature" value="4/4" pattern="[1-9][0-9]?/[1-9][0-9]?"><button type="submit">Export DAW package</button></form></section>
 </div>'''
