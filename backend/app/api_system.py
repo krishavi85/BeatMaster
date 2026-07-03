@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from .api_helpers import get_db
 from .config import settings
-from .dashboard import render_dashboard
+from .dashboard_full import render_dashboard
 from .pages import page
 from .schemas import CapabilityOut
 from .ui_jobs import router as jobs_ui
