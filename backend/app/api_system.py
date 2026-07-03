@@ -8,8 +8,12 @@ from .config import settings
 from .dashboard import render_dashboard
 from .pages import page
 from .schemas import CapabilityOut
+from .ui_processing import router as processing_ui
+from .ui_projects import router as projects_ui
 
 router = APIRouter(tags=["system"])
+router.include_router(projects_ui)
+router.include_router(processing_ui)
 
 @router.get("/", include_in_schema=False)
 def dashboard(session: Session = Depends(get_db)):
