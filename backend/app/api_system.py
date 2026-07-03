@@ -1,16 +1,19 @@
 import importlib.util
 import os
 import shutil
-from fastapi import APIRouter
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from .api_helpers import get_db
 from .config import settings
+from .dashboard import render_dashboard
+from .pages import page
 from .schemas import CapabilityOut
 
 router = APIRouter(tags=["system"])
 
-@router.get("/", response_class=HTMLResponse, include_in_schema=False)
-def dashboard():
-    return HTMLResponse('<h1>BeatMaster</h1><p><a href="/docs">Open production controls</a></p>')
+@router.get("/", include_in_schema=False)
+def dashboard(session: Session = Depends(get_db)):
+    return page("Dashboard", render_dashboard(session))
 
 @router.get("/health")
 def health():
