@@ -5,6 +5,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from .api_helpers import create_job, get_db, load_project
+from .config import settings
 from .culture_profiles import get_profile
 from .models import AudioFile
 from .runtime_capabilities import inspect_capabilities
@@ -18,6 +19,27 @@ def _project_file(session: Session, project_id: str, file_id: str) -> AudioFile:
     if item is None or item.project_id != project_id:
         raise HTTPException(status_code=400, detail="Selected file does not belong to this project")
     return item
+
+
+@router.post("/ui/generate-long", include_in_schema=False)
+def generate_long_ui(
+    prompt: Annotated[str, Form(min_length=8, max_length=2000)],
+    duration_seconds: Annotated[int, Form()] = 60,
+    name: Annotated[str, Form()] = "Generated music",
+    language: Annotated[str, Form()] = "English",
+    culture_profile_id: Annotated[str, Form()] = "",
+    sections: Annotated[str | None, Form()] = None,
+    seed: Annotated[int | None, Form()] = None,
+    session: Session = Depends(get_db),
+):
+    if not settings.enable_local_musicgen:
+        raise HTTPException(status_code=503, detail="Music generation is disabled")
+    if not 4 <= duration_seconds <= 300:
+        raise HTTPException(status_code=400, detail="Duration must be between 4 and 300 seconds")
+    if culture_profile_id and get_profile(culture_profile_id) is None:
+        raise HTTPException(status_code=400, detail="Unknown culture profile")
+    job = create_job(session, None, "generate", {"prompt": prompt.strip(), "duration_seconds": duration_seconds, "name": name.strip() or "Generated music", "language": language, "culture_profile_id": culture_profile_id or None, "sections": sections, "seed": seed})
+    return RedirectResponse(f"/ui/jobs/{job.id}", status_code=303)
 
 
 @router.post("/ui/projects/{project_id}/singing", include_in_schema=False)
