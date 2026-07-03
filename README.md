@@ -43,3 +43,5 @@ uvicorn app.server:application --reload
 Run the worker in another terminal with `python -m app.worker`.
 
 Production operation still requires compute, disk, backups, HTTPS, authentication, quotas, monitoring, malware scanning and appropriate model/content licenses.
+
+The repository workflow verifies imports, health, capability reporting and Compose configuration.
