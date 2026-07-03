@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import os
 from typing import Any
 
@@ -19,7 +20,8 @@ def provider_status() -> dict[str, Any]:
     if provider == "openai-compatible":
         return {"provider": provider, "configured": bool(os.getenv("LYRICS_API_URL") and os.getenv("LYRICS_MODEL")), "model": os.getenv("LYRICS_MODEL") or None}
     if provider == "local-transformers":
-        return {"provider": provider, "configured": bool(os.getenv("LYRICS_LOCAL_MODEL")), "model": os.getenv("LYRICS_LOCAL_MODEL") or None}
+        runtime_ready = importlib.util.find_spec("transformers") is not None
+        return {"provider": provider, "configured": bool(os.getenv("LYRICS_LOCAL_MODEL")) and runtime_ready, "model": os.getenv("LYRICS_LOCAL_MODEL") or None, "runtime_ready": runtime_ready}
     return {"provider": provider or None, "configured": False, "model": None}
 
 
