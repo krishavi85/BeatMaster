@@ -47,7 +47,8 @@ def complete_song_ui(
     prompt: Annotated[str, Form(min_length=8, max_length=3000)],
     language: Annotated[str, Form()] = "English",
     culture_profile_id: Annotated[str, Form()] = "",
-    duration_seconds: Annotated[int, Form()] = 20,
+    structure: Annotated[str | None, Form()] = None,
+    duration_seconds: Annotated[int, Form()] = 180,
     seed: Annotated[int | None, Form()] = None,
     include_lyrics: Annotated[bool, Form()] = False,
     render_vocals: Annotated[bool, Form()] = False,
@@ -57,6 +58,8 @@ def complete_song_ui(
     capabilities = inspect_capabilities()
     if not capabilities["complete_song_pipeline"]:
         raise HTTPException(status_code=503, detail="The complete production pipeline is not configured")
+    if not 4 <= duration_seconds <= 300:
+        raise HTTPException(status_code=400, detail="Duration must be between 4 and 300 seconds")
     if culture_profile_id and get_profile(culture_profile_id) is None:
         raise HTTPException(status_code=400, detail="Unknown culture profile")
     if include_lyrics and not capabilities["lyrics_provider_configured"]:
@@ -65,5 +68,5 @@ def complete_song_ui(
         raise HTTPException(status_code=400, detail="Singing vocals require generated lyrics")
     if render_vocals and not capabilities["singing_provider_configured"]:
         raise HTTPException(status_code=503, detail="No singing synthesis provider is configured")
-    job = create_job(session, None, "song_package", {"title": title.strip() or "BeatMaster Song", "name": title.strip() or "BeatMaster Song", "prompt": prompt.strip(), "language": language, "culture_profile_id": culture_profile_id or None, "duration_seconds": duration_seconds, "seed": seed, "include_lyrics": include_lyrics, "render_vocals": render_vocals, "voice_id": voice_id or None, "vocal_gain_db": -3.0, "separate_stems": True, "extract_chords": True, "extract_midi": True, "export_daw": True, "separation_model": "htdemucs", "output_format": "wav", "time_signature": "4/4"})
+    job = create_job(session, None, "song_package", {"title": title.strip() or "BeatMaster Song", "name": title.strip() or "BeatMaster Song", "prompt": prompt.strip(), "language": language, "culture_profile_id": culture_profile_id or None, "structure": structure, "duration_seconds": duration_seconds, "seed": seed, "include_lyrics": include_lyrics, "render_vocals": render_vocals, "voice_id": voice_id or None, "vocal_gain_db": -3.0, "separate_stems": True, "extract_chords": True, "extract_midi": True, "export_daw": True, "separation_model": "htdemucs", "output_format": "wav", "time_signature": "4/4"})
     return RedirectResponse(f"/ui/jobs/{job.id}", status_code=303)
