@@ -1,0 +1,45 @@
+name: BeatMaster CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install system audio tools
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg libsndfile1
+      - name: Install Python dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r backend/requirements.txt httpx
+      - name: Compile backend
+        working-directory: backend
+        run: python -m compileall -q app
+      - name: Import application and test health
+        working-directory: backend
+        env:
+          BEATMASTER_DATA_DIR: /tmp/beatmaster-data
+          DATABASE_URL: sqlite:////tmp/beatmaster-data/test.db
+        run: |
+          python - <<'PY'
+          from fastapi.testclient import TestClient
+          from app.server import application
+          client = TestClient(application)
+          response = client.get('/health')
+          assert response.status_code == 200, response.text
+          assert response.json()['status'] == 'ok'
+          capabilities = client.get('/api/capabilities')
+          assert capabilities.status_code == 200, capabilities.text
+          print(capabilities.json())
+          PY
+      - name: Validate Compose configuration
+        run: docker compose config
