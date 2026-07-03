@@ -94,10 +94,11 @@ class CultureAwareRequest(BaseModel):
 
 class GenerationRequest(CultureAwareRequest):
     prompt: str = Field(min_length=8, max_length=2000)
-    duration_seconds: int = Field(12, ge=4, le=30)
+    duration_seconds: int = Field(30, ge=4, le=300)
     name: str = "generated"
     seed: int | None = None
     guidance_scale: float = Field(3.0, ge=1.0, le=10.0)
+    sections: str | None = Field(None, max_length=1000)
 
     @field_validator("prompt")
     @classmethod
@@ -143,8 +144,8 @@ class CompleteSongRequest(CultureAwareRequest):
     prompt: str = Field(min_length=8, max_length=3000)
     title: str = Field("BeatMaster Song", min_length=1, max_length=200)
     mood: str | None = Field(None, max_length=200)
-    structure: str | None = Field(None, max_length=500)
-    duration_seconds: int = Field(20, ge=4, le=30)
+    structure: str | None = Field(None, max_length=1000)
+    duration_seconds: int = Field(180, ge=4, le=300)
     seed: int | None = None
     guidance_scale: float = Field(3.0, ge=1.0, le=10.0)
     include_lyrics: bool = True
