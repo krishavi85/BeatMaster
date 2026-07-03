@@ -9,7 +9,7 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -20,10 +20,20 @@ jobs:
       - name: Install system audio tools
         run: sudo apt-get update && sudo apt-get install -y ffmpeg libsndfile1
       - name: Install Python dependencies
-        run: python -m pip install --upgrade pip && python -m pip install -r backend/requirements.txt httpx
+        run: python -m pip install --upgrade pip && python -m pip install -r backend/requirements.txt pytest
       - name: Compile backend
         working-directory: backend
-        run: python -m compileall -q app
+        run: python -m compileall -q app tests
+      - name: Run test suite
+        working-directory: backend
+        env:
+          BEATMASTER_DATA_DIR: /tmp/beatmaster-data
+          DATABASE_URL: sqlite:////tmp/beatmaster-data/test.db
+          ENABLE_LOCAL_MUSICGEN: "false"
+          CULTURE_MODEL_MAP: ""
+          LYRICS_PROVIDER: ""
+          SINGING_PROVIDER: ""
+        run: pytest -q
       - name: Import application and test health
         working-directory: backend
         env:
@@ -39,6 +49,9 @@ jobs:
           assert response.json()['status'] == 'ok'
           capabilities = client.get('/api/capabilities')
           assert capabilities.status_code == 200, capabilities.text
+          profiles = client.get('/api/culture-profiles')
+          assert profiles.status_code == 200, profiles.text
+          assert len(profiles.json()['profiles']) >= 9
           print(capabilities.json())
           PY
       - name: Validate Compose configuration
