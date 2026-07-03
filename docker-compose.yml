@@ -4,11 +4,13 @@ services:
     environment:
       BEATMASTER_DATA_DIR: /data
       DATABASE_URL: sqlite:////data/beatmaster.db
-      CORS_ORIGINS: http://localhost:5173,http://localhost:8080
+      ENABLE_LOCAL_MUSICGEN: "false"
     volumes:
       - beatmaster_data:/data
     ports:
       - "8000:8000"
+      - "8080:8000"
+    restart: unless-stopped
   worker:
     build:
       context: ./backend
@@ -17,17 +19,13 @@ services:
       BEATMASTER_DATA_DIR: /data
       DATABASE_URL: sqlite:////data/beatmaster.db
       DEMUCS_DEVICE: cpu
+      ENABLE_LOCAL_MUSICGEN: "false"
     volumes:
       - beatmaster_data:/data
       - model_cache:/root/.cache
     depends_on:
       - api
-  web:
-    build: ./web
-    ports:
-      - "8080:80"
-    depends_on:
-      - api
+    restart: unless-stopped
 volumes:
   beatmaster_data:
   model_cache:
