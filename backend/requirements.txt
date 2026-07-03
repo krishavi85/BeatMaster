@@ -1,1 +1,10 @@
-fastapi
+fastapi==0.115.12
+uvicorn==0.34.2
+python-multipart==0.0.20
+SQLAlchemy==2.0.41
+pydantic==2.11.5
+numpy==1.26.4
+librosa==0.10.2.post1
+soundfile==0.12.1
+scipy==1.13.1
+demucs==4.0.1
