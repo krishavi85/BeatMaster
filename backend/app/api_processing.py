@@ -79,9 +79,14 @@ def queue_generation(request: GenerationRequest, session: Session = Depends(get_
 def queue_song_package(request: CompleteSongRequest, session: Session = Depends(get_db)):
     capabilities = inspect_capabilities()
     if not capabilities["complete_song_pipeline"]:
-        raise HTTPException(status_code=503, detail="The music generation runtime is not configured")
+        raise HTTPException(status_code=503, detail="The complete music-production runtime is not configured")
     if request.include_lyrics and not capabilities["lyrics_provider_configured"]:
         raise HTTPException(status_code=503, detail="A lyrics provider is required when include_lyrics is true")
+    if request.render_vocals:
+        if not request.include_lyrics:
+            raise HTTPException(status_code=400, detail="render_vocals requires include_lyrics")
+        if not capabilities["singing_provider_configured"]:
+            raise HTTPException(status_code=503, detail="A singing provider is required when render_vocals is true")
     return create_job(session, None, "song_package", request.model_dump())
 
 
