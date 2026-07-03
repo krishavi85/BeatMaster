@@ -33,7 +33,18 @@ jobs:
           CULTURE_MODEL_MAP: ""
           LYRICS_PROVIDER: ""
           SINGING_PROVIDER: ""
-        run: pytest -q
+        shell: bash
+        run: |
+          set -o pipefail
+          pytest -q 2>&1 | tee pytest.log
+      - name: Upload test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: beatmaster-pytest-log
+          path: backend/pytest.log
+          if-no-files-found: warn
+          retention-days: 7
       - name: Import application and test health
         working-directory: backend
         env:
