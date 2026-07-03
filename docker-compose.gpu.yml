@@ -1,4 +1,11 @@
 services:
+  api:
+    environment:
+      BEATMASTER_DATA_DIR: /data
+      DATABASE_URL: sqlite:////data/beatmaster.db
+      ENABLE_LOCAL_MUSICGEN: "true"
+      MUSICGEN_MODEL: ${MUSICGEN_MODEL}
+      MUSICGEN_DEVICE: cuda
   worker:
     build:
       context: ./backend
@@ -8,5 +15,6 @@ services:
       DATABASE_URL: sqlite:////data/beatmaster.db
       DEMUCS_DEVICE: cuda
       ENABLE_LOCAL_MUSICGEN: "true"
+      MUSICGEN_MODEL: ${MUSICGEN_MODEL}
       MUSICGEN_DEVICE: cuda
     gpus: all
