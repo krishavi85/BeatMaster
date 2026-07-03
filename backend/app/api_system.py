@@ -2,10 +2,15 @@ import importlib.util
 import os
 import shutil
 from fastapi import APIRouter
+from fastapi.responses import HTMLResponse
 from .config import settings
 from .schemas import CapabilityOut
 
 router = APIRouter(tags=["system"])
+
+@router.get("/", response_class=HTMLResponse, include_in_schema=False)
+def dashboard():
+    return HTMLResponse('<h1>BeatMaster</h1><p><a href="/docs">Open production controls</a></p>')
 
 @router.get("/health")
 def health():
