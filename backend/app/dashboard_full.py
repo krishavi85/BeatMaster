@@ -23,6 +23,7 @@ def render_dashboard(session: Session) -> str:
         ("DEMUCS", capabilities["demucs"], "Real editable source separation"),
         ("HARMONY", capabilities["chord_detection"] and capabilities["midi_transcription"], "Chord maps and MIDI transcription"),
         ("LYRICS", capabilities["lyrics_provider_configured"], f"Provider: {capabilities['lyrics_provider'] or 'not configured'}"),
+        ("SINGING", capabilities["singing_provider_configured"], f"Provider: {capabilities['singing_provider'] or 'not configured'}"),
         ("DAW EXPORT", capabilities["daw_export"], "REAPER project and aligned interchange ZIP"),
         ("CULTURE", capabilities["culture_profile_count"] > 0, f"{capabilities['culture_profile_count']} transparent culture profiles"),
     ]
@@ -32,7 +33,8 @@ def render_dashboard(session: Session) -> str:
     )
     generation_ready = bool(capabilities["complete_song_pipeline"])
     lyrics_ready = bool(capabilities["lyrics_provider_configured"])
-    return f'''<section class="hero"><span class="pill ok">MULTILINGUAL AI MUSIC STUDIO</span><h1>Produce, edit and export without placeholders.</h1><p>Create music beds, editable stems, chord maps, MIDI, multilingual lyrics and DAW interchange packages. Caribbean and Surinamese profiles are explicit and inspectable; BeatMaster only labels a model as culturally fine-tuned when you register that model.</p></section>
+    singing_ready = bool(capabilities["singing_provider_configured"])
+    return f'''<section class="hero"><span class="pill ok">MULTILINGUAL AI MUSIC STUDIO</span><h1>Produce, edit and export without placeholders.</h1><p>Create music beds, editable stems, chord maps, MIDI, multilingual lyrics, optional singing vocals and DAW interchange packages. Caribbean and Surinamese profiles are explicit and inspectable; BeatMaster only labels a model as culturally fine-tuned when you register that model.</p></section>
 <div class="grid">{status_cards}</div>
-<div class="grid" style="margin-top:18px">{upload}{generation_panel(generation_ready, lyrics_ready)}</div>
+<div class="grid" style="margin-top:18px">{upload}{generation_panel(generation_ready, lyrics_ready, singing_ready)}</div>
 <section style="margin-top:18px"><h2>Your projects</h2><div class="grid">{project_cards}</div></section>'''
