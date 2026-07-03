@@ -15,6 +15,7 @@ from .models import Job
 from .process_analyze import process_analyze
 from .render_jobs import process_master, process_mix
 from .separation_jobs import process_separate
+from .singing_jobs import process_singing
 from .song_package_jobs import process_song_package
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -27,6 +28,7 @@ PROCESSORS = {
     "master": process_master,
     "generate": process_generate,
     "lyrics": process_lyrics,
+    "singing": process_singing,
     "chords": process_chords,
     "midi": process_midi,
     "daw_export": process_daw_export,
