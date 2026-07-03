@@ -23,8 +23,8 @@ Open BeatMaster at `http://localhost:8080` and the API at `http://localhost:8000
 For GPU processing and local generation:
 
 ```bash
-cp config.example.env .env
-# Set MUSICGEN_MODEL to a compatible model whose license permits your use.
+cp config.env.sample .env
+# Replace MUSICGEN_MODEL with a compatible model whose license permits your use.
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
 ```
 
