@@ -11,10 +11,12 @@ from .schemas import CapabilityOut
 from .ui_jobs import router as jobs_ui
 from .ui_processing import router as processing_ui
 from .ui_projects import router as projects_ui
+from .ui_singing import router as singing_ui
 
 router = APIRouter(tags=["system"])
 router.include_router(projects_ui)
 router.include_router(processing_ui)
+router.include_router(singing_ui)
 router.include_router(jobs_ui)
 
 
