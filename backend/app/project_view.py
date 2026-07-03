@@ -7,7 +7,7 @@ from .models import AudioFile, Project
 from .runtime_capabilities import inspect_capabilities
 from .storage import absolute_from_relative
 
-AUDIO_KINDS = {"source", "stem", "mix", "master", "generated"}
+AUDIO_KINDS = {"source", "stem", "mix", "master", "generated", "vocal"}
 
 
 def option_files(project: Project, kinds: set[str] | None = None) -> str:
@@ -76,11 +76,21 @@ def render_project(project: Project) -> tuple[str, bool]:
     sources = option_files(project, {item.kind for item in audio_files})
     mixer_rows = "".join(
         f'''<tr class="mix-row" data-file-id="{item.id}"><td><strong>{escape(item.label)}</strong><br><span class="muted">{escape(item.kind)}</span></td><td><input class="mix-gain" type="number" value="0" min="-60" max="18" step="0.1"></td><td><input class="mix-pan" type="number" value="0" min="-1" max="1" step="0.05"></td><td><input class="mix-mute" type="checkbox"></td></tr>'''
-        for item in audio_files if item.kind in {"source", "stem", "generated"}
+        for item in audio_files if item.kind in {"source", "stem", "generated", "vocal"}
     ) or '<tr><td colspan="4">No mixable files.</td></tr>'
     culture_selected = analysis.get("culture_profile_id")
     lyrics_disabled = "" if capabilities["lyrics_provider_configured"] else "disabled"
     lyrics_notice = "" if capabilities["lyrics_provider_configured"] else '<div class="notice">Connect Ollama, an OpenAI-compatible endpoint or a local Transformers text model to enable AI songwriting.</div>'
+    lyrics_options = option_files(project, {"lyrics"})
+    midi_options = '<option value="">No melody MIDI</option>' + option_files(project, {"midi"})
+    singing_ready = capabilities["singing_provider_configured"] and bool(lyrics_options)
+    singing_disabled = "" if singing_ready else "disabled"
+    if not capabilities["singing_provider_configured"]:
+        singing_notice = '<div class="notice">Connect a compatible singing synthesis REST provider to render vocals.</div>'
+    elif not lyrics_options:
+        singing_notice = '<div class="notice">Generate or upload a lyrics asset before rendering vocals.</div>'
+    else:
+        singing_notice = ""
     forms = f'''
 <div class="grid" style="margin-top:18px">
 <section class="card"><h2>Separate editable stems</h2><form action="/ui/projects/{project.id}/separate" method="post"><label>Source</label><select name="source_file_id" required>{sources}</select><label>Demucs model</label><select name="model"><option>htdemucs</option><option>htdemucs_ft</option><option>htdemucs_6s</option><option>mdx_extra_q</option></select><label>Mode</label><select name="two_stems"><option value="">4 or 6 stems</option><option value="vocals">Vocals + accompaniment</option><option value="drums">Drums + remainder</option><option value="bass">Bass + remainder</option></select><label>Format</label><select name="output_format"><option>wav</option><option>flac</option><option>mp3</option></select><button type="submit">Run real separation</button></form></section>
@@ -88,6 +98,7 @@ def render_project(project: Project) -> tuple[str, bool]:
 <section class="card"><h2>Master audio</h2><form action="/ui/projects/{project.id}/master" method="post"><label>Source</label><select name="source_file_id" required>{sources}</select><label>Name</label><input name="name" value="BeatMaster Master"><label>Target LUFS</label><input name="target_lufs" type="number" value="-14" min="-24" max="-5" step="0.1"><label>True peak ceiling</label><input name="true_peak_db" type="number" value="-1" min="-3" max="-0.1" step="0.1"><label>Loudness range</label><input name="loudness_range" type="number" value="11" min="1" max="20" step="0.1"><label>Style</label><select name="style"><option>transparent</option><option>warm</option><option>bright</option><option>punchy</option><option>wide</option></select><label>Format</label><select name="output_format"><option>wav</option><option>flac</option><option>mp3</option></select><button type="submit">Run two-pass master</button></form></section>
 <section class="card"><h2>Chords and MIDI</h2><form action="/ui/projects/{project.id}/chords" method="post"><label>Audio source</label><select name="source_file_id" required>{sources}</select><label>Chord-map name</label><input name="name" value="Chord Map"><button type="submit">Extract chord timeline</button></form><hr style="border-color:#29243d"><form action="/ui/projects/{project.id}/midi" method="post"><label>Audio source</label><select name="source_file_id" required>{sources}</select><label>MIDI name</label><input name="name" value="MIDI Transcription"><label>Tempo override</label><input name="tempo_bpm" type="number" min="30" max="300" step="0.1" placeholder="Use detected tempo"><button type="submit">Transcribe MIDI</button></form></section>
 <section class="card"><h2>Multilingual songwriting</h2><form action="/ui/projects/{project.id}/lyrics" method="post"><label>Title</label><input name="title" value="{escape(project.name)}" required><label>Theme and story</label><textarea name="prompt" minlength="8" maxlength="3000" required placeholder="Describe the story, message and emotional progression"></textarea><label>Language</label><select name="language">{_language_options()}</select><label>Culture profile</label><select name="culture_profile_id">{_culture_options(culture_selected)}</select><label>Mood</label><input name="mood" placeholder="Hopeful, intimate, celebratory..."><label>Structure</label><input name="structure" placeholder="Verse, Pre-Chorus, Chorus, Verse, Bridge, Final Chorus"><button type="submit" {lyrics_disabled}>Generate editable lyrics</button></form>{lyrics_notice}</section>
+<section class="card"><h2>Singing vocals</h2><p class="muted">Sends your lyrics and optional melody MIDI to the configured synthesis provider and stores the returned vocal track.</p><form action="/ui/projects/{project.id}/singing" method="post"><label>Lyrics</label><select name="lyrics_file_id" required>{lyrics_options}</select><label>Melody MIDI</label><select name="midi_file_id">{midi_options}</select><label>Track name</label><input name="name" value="Lead Vocals"><label>Song title</label><input name="title" value="{escape(project.name)}"><label>Language</label><select name="language">{_language_options()}</select><label>Voice ID</label><input name="voice_id" placeholder="Provider voice or singer model ID"><button type="submit" {singing_disabled}>Render singing track</button></form>{singing_notice}</section>
 <section class="card"><h2>DAW integration</h2><p class="muted">Exports aligned audio, MIDI, chords and lyrics with a REAPER project and a generic interchange manifest.</p><form action="/ui/projects/{project.id}/daw-export" method="post"><label>Package name</label><input name="name" value="{escape(project.name)} DAW Package"><label>Tempo</label><input name="tempo_bpm" type="number" min="30" max="300" step="0.1" value="{escape(str(analysis.get('tempo_bpm') or ''))}" placeholder="120"><label>Time signature</label><input name="time_signature" value="4/4" pattern="[1-9][0-9]?/[1-9][0-9]?"><button type="submit">Export DAW package</button></form></section>
 </div>'''
     script = '''<script>function collectMixer(form){const tracks=[];form.querySelectorAll('.mix-row').forEach(row=>{tracks.push({file_id:row.dataset.fileId,gain_db:Number(row.querySelector('.mix-gain').value),pan:Number(row.querySelector('.mix-pan').value),mute:row.querySelector('.mix-mute').checked});});form.querySelector('[name=tracks_json]').value=JSON.stringify(tracks);return tracks.some(track=>!track.mute);}</script>'''
