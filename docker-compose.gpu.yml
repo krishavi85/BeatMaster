@@ -1,0 +1,12 @@
+services:
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.gpu
+    environment:
+      BEATMASTER_DATA_DIR: /data
+      DATABASE_URL: sqlite:////data/beatmaster.db
+      DEMUCS_DEVICE: cuda
+      ENABLE_LOCAL_MUSICGEN: "true"
+      MUSICGEN_DEVICE: cuda
+    gpus: all
