@@ -5,18 +5,29 @@ from pathlib import Path
 from beatmaster_models.data import prepare_dataset, read_jsonl, write_jsonl
 
 
+def absolute_source(value, base):
+    if not value:
+        return value
+    path = Path(str(value))
+    return str(path if path.is_absolute() else (base / path).resolve())
+
+
 def main():
     parser = argparse.ArgumentParser(description="Prepare only recordings with explicit voice-model consent")
     parser.add_argument("manifest", type=Path)
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
-    manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+    manifest_path = args.manifest.resolve()
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     selected = []
-    for recording in manifest.get("recordings", []):
-        if not recording.get("alignment_path"):
+    for original in manifest.get("recordings", []):
+        if not original.get("alignment_path"):
             continue
-        if recording.get("voice_model_consent") is not True:
-            raise RuntimeError(f"Voice-model consent is missing for {recording.get('id')}")
+        if original.get("voice_model_consent") is not True:
+            raise RuntimeError(f"Voice-model consent is missing for {original.get('id')}")
+        recording = dict(original)
+        for field in ("path", "lyrics_path", "midi_path", "alignment_path"):
+            recording[field] = absolute_source(recording.get(field), manifest_path.parent)
         selected.append(recording)
     if not selected:
         raise RuntimeError("No aligned recordings with explicit voice-model consent were found")
@@ -27,8 +38,8 @@ def main():
     filtered_manifest.write_text(json.dumps(filtered, ensure_ascii=False, indent=2), encoding="utf-8")
     report = prepare_dataset(filtered_manifest, args.output)
     records = read_jsonl(args.output / "segments.jsonl")
-    consented = []
     by_id = {str(item["id"]): item for item in selected}
+    consented = []
     for record in records:
         source = by_id[record["recording_id"]]
         record["voice_model_consent"] = True
