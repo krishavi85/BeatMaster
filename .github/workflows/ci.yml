@@ -9,22 +9,25 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
           cache: pip
-          cache-dependency-path: backend/requirements.txt
+          cache-dependency-path: |
+            backend/requirements.txt
+            training/model_factory/requirements.txt
       - name: Install system audio tools
         run: sudo apt-get update && sudo apt-get install -y ffmpeg libsndfile1
       - name: Install Python dependencies
-        run: python -m pip install --upgrade pip && python -m pip install -r backend/requirements.txt pytest
-      - name: Compile backend
-        working-directory: backend
-        run: python -m compileall -q app tests
-      - name: Run test suite
+        run: python -m pip install --upgrade pip && python -m pip install -r backend/requirements.txt PyYAML pytest
+      - name: Compile backend and model factory
+        run: |
+          python -m compileall -q backend/app backend/tests
+          python -m compileall -q training/model_factory/beatmaster_models training/model_factory/scripts training/model_factory/tests
+      - name: Run backend tests
         working-directory: backend
         env:
           PYTHONPATH: .
@@ -38,12 +41,21 @@ jobs:
         run: |
           set -o pipefail
           python -m pytest -q 2>&1 | tee pytest.log
+      - name: Run model factory tests
+        env:
+          PYTHONPATH: training/model_factory
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m pytest -q training/model_factory/tests 2>&1 | tee model-factory-pytest.log
       - name: Upload test diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: beatmaster-pytest-log
-          path: backend/pytest.log
+          name: beatmaster-test-logs
+          path: |
+            backend/pytest.log
+            model-factory-pytest.log
           if-no-files-found: warn
           retention-days: 7
       - name: Import application and test health
@@ -67,5 +79,7 @@ jobs:
           assert len(profiles.json()['profiles']) >= 9
           print(capabilities.json())
           PY
-      - name: Validate Compose configuration
-        run: docker compose config
+      - name: Validate Compose configurations
+        run: |
+          docker compose config
+          docker compose -f docker-compose.yml -f docker-compose.models.yml config
