@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from .audio_probe import analyze_audio
 from .daw_export import process_daw_export
 from .file_registry import register_file
-from .generation_jobs import generate_audio
+from .generation_entry import generate_audio
 from .harmony_jobs import process_chords, process_midi
 from .lyrics_jobs import process_lyrics
 from .models import Job, Project
@@ -117,7 +117,7 @@ def process_song_package(session: Session, job: Job, progress):
         "audio_type": "AI-generated music bed with optional provider-rendered singing vocals",
         "sung_vocals_included": bool(request.get("render_vocals", False)),
         "lyrics_are_separate_editable_assets": bool(request.get("include_lyrics", True)),
-        "culture_conditioning": generation_metadata.get("model_source"),
+        "culture_conditioning": generation_metadata.get("model_source") or generation_metadata.get("provider"),
         "fine_tuned_culture_model": generation_metadata.get("fine_tuned_for_profile", False),
     }
     progress(99, "Complete production package ready")
