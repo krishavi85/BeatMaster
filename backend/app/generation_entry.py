@@ -1,0 +1,1 @@
+# BeatMaster generation entry point.
