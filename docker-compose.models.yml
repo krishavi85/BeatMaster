@@ -1,0 +1,33 @@
+services:
+  model-server:
+    build:
+      context: .
+      dockerfile: training/model_factory/Dockerfile
+    environment:
+      BEATMASTER_CODEC_CHECKPOINT: /models/codec/model.pt
+      BEATMASTER_MUSIC_CHECKPOINT: /models/music/model.pt
+      BEATMASTER_TOKENIZER: /models/music/tokenizer.json
+      BEATMASTER_MODEL_DEVICE: ${BEATMASTER_MODEL_DEVICE:-cpu}
+      BEATMASTER_GENERATION_CHUNK_FRAMES: ${BEATMASTER_GENERATION_CHUNK_FRAMES:-2048}
+    volumes:
+      - ./models:/models:ro
+    ports:
+      - "8090:8090"
+    restart: unless-stopped
+  api:
+    environment:
+      MUSIC_GENERATION_PROVIDER: beatmaster
+      BEATMASTER_MODEL_API_URL: http://model-server:8090
+      BEATMASTER_MODEL_API_KEY: ${BEATMASTER_MODEL_API_KEY:-}
+      ENABLE_LOCAL_MUSICGEN: "true"
+    depends_on:
+      - model-server
+  worker:
+    environment:
+      MUSIC_GENERATION_PROVIDER: beatmaster
+      BEATMASTER_MODEL_API_URL: http://model-server:8090
+      BEATMASTER_MODEL_API_KEY: ${BEATMASTER_MODEL_API_KEY:-}
+      ENABLE_LOCAL_MUSICGEN: "true"
+    depends_on:
+      - api
+      - model-server

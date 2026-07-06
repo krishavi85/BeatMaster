@@ -1,0 +1,35 @@
+model:
+  sample_rate: 32000
+  audio_channels: 1
+  codec_hidden: 64
+  codec_latent: 128
+  codec_codebooks: 4
+  codec_bins: 1024
+  codec_strides: [2, 4, 5, 8]
+  text_vocab_size: 16000
+  transformer_dim: 384
+  transformer_heads: 6
+  transformer_layers: 6
+  transformer_ff: 1536
+  max_audio_frames: 4096
+  n_mels: 100
+  singing_hidden: 384
+  singing_layers: 6
+  singing_heads: 6
+  vocoder_upsample: [8, 8, 5]
+data:
+  index: data/prepared/segments.jsonl
+training:
+  output_dir: runs/codec-small
+  device: auto
+  batch_size: 4
+  workers: 2
+  epochs: 100
+  learning_rate: 0.0002
+  weight_decay: 0.01
+  warmup_steps: 1000
+  gradient_accumulation: 1
+  gradient_clip: 1.0
+  mixed_precision: true
+  log_every: 20
+  validation_batches: 20

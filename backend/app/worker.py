@@ -8,10 +8,10 @@ from sqlalchemy import select
 from .config import settings
 from .database import Base, engine, session_scope
 from .daw_export import process_daw_export
-from .generation_jobs import process_generate
 from .harmony_jobs import process_chords, process_midi
 from .lyrics_jobs import process_lyrics
 from .models import Job
+from .own_job import process_generate
 from .process_analyze import process_analyze
 from .render_jobs import process_master, process_mix
 from .separation_jobs import process_separate

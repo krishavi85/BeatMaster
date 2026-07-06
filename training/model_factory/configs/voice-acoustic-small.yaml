@@ -1,0 +1,18 @@
+model:
+  sample_rate: 32000
+  text_vocab_size: 16000
+  text_max_length: 1024
+  max_audio_frames: 4096
+  n_mels: 100
+  singing_hidden: 384
+  singing_layers: 6
+  singing_heads: 6
+  vocoder_upsample: [8, 8, 5]
+data:
+  index: data/prepared/segments.jsonl
+training:
+  output_dir: runs/voice-acoustic-small
+  device: auto
+  batch_size: 2
+  epochs: 100
+  learning_rate: 0.0002

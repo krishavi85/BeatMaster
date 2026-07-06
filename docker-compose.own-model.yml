@@ -1,0 +1,30 @@
+services:
+  model-server:
+    build:
+      context: .
+      dockerfile: training/model_factory/Dockerfile
+    environment:
+      BEATMASTER_CODEC_CHECKPOINT: /models/codec/model.pt
+      BEATMASTER_MUSIC_CHECKPOINT: /models/music/model.pt
+      BEATMASTER_TOKENIZER: /models/music/tokenizer.json
+      BEATMASTER_MODEL_DEVICE: cpu
+    volumes:
+      - ./models:/models:ro
+    ports:
+      - "8090:8090"
+  api:
+    environment:
+      MUSIC_GENERATION_PROVIDER: beatmaster
+      MUSICGEN_MODEL: beatmaster-custom
+      ENABLE_LOCAL_MUSICGEN: "true"
+      BEATMASTER_MODEL_API_URL: http://model-server:8090
+    depends_on:
+      - model-server
+  worker:
+    environment:
+      MUSIC_GENERATION_PROVIDER: beatmaster
+      MUSICGEN_MODEL: beatmaster-custom
+      ENABLE_LOCAL_MUSICGEN: "true"
+      BEATMASTER_MODEL_API_URL: http://model-server:8090
+    depends_on:
+      - model-server
