@@ -26,7 +26,14 @@ def inspect_capabilities() -> dict:
     demucs_ready = importlib.util.find_spec("demucs") is not None
     chord_ready = importlib.util.find_spec("librosa") is not None
     midi_ready = importlib.util.find_spec("mido") is not None and chord_ready
-    musicgen_ready = settings.enable_local_musicgen and musicgen_runtime and bool(os.getenv("MUSICGEN_MODEL"))
+    provider = os.getenv("MUSIC_GENERATION_PROVIDER", "transformers").strip().lower()
+    own_model_ready = provider in {"beatmaster", "custom"} and bool(os.getenv("BEATMASTER_MODEL_API_URL"))
+    transformers_ready = settings.enable_local_musicgen and musicgen_runtime and bool(os.getenv("MUSICGEN_MODEL"))
+    music_ready = own_model_ready or transformers_ready
+    if own_model_ready:
+        generation_model = "BeatMaster custom model server"
+    else:
+        generation_model = os.getenv("MUSICGEN_MODEL", "not configured")
     return {
         "ffmpeg": ffmpeg_ready,
         "ffprobe": ffprobe_ready,
@@ -38,12 +45,12 @@ def inspect_capabilities() -> dict:
         "lyrics_provider": lyrics["provider"],
         "singing_provider_configured": bool(singing["configured"]),
         "singing_provider": singing["provider"],
-        "musicgen_enabled": settings.enable_local_musicgen,
-        "musicgen_runtime": musicgen_runtime,
-        "complete_song_pipeline": musicgen_ready and ffmpeg_ready and ffprobe_ready and demucs_ready and chord_ready and midi_ready,
+        "musicgen_enabled": music_ready,
+        "musicgen_runtime": own_model_ready or musicgen_runtime,
+        "complete_song_pipeline": music_ready and ffmpeg_ready and ffprobe_ready and demucs_ready and chord_ready and midi_ready,
         "cuda_available": cuda_available,
         "separation_models": ["htdemucs", "htdemucs_ft", "htdemucs_6s", "mdx_extra_q"],
-        "generation_model": os.getenv("MUSICGEN_MODEL", "not configured"),
+        "generation_model": generation_model,
         "culture_profile_count": len(list_profiles()),
         "culture_model_count": int(registry["culture_model_count"]),
     }
